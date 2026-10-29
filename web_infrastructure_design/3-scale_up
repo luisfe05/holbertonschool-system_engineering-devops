@@ -1,0 +1,38 @@
+# 3. Scale up
+
+Diagram: https://github.com/luisfe05/holbertonschool-system_engineering-devops/blob/main/web_infrastructure_design/3-scale_up.png
+
+## What happens when a user visits www.foobar.com
+
+DNS resolves `www.foobar.com` to the load balancer cluster. The active HAProxy
+receives the request and forwards it to the web server (Nginx). The web server
+serves static files and passes dynamic requests to the application server,
+which runs the code base and queries the database server. The response goes
+back the same way to the user.
+
+## Infrastructure
+
+- 2 load balancers (HAProxy) configured as a cluster: one active and one
+  passive (or both active), so the other takes over if one fails.
+- 1 web server (Nginx) on its own server.
+- 1 application server (with the code base) on its own server.
+- 1 database server (MySQL) on its own server.
+
+Compared with the previous design, this adds 1 server and 1 load balancer, and
+the components are split so each one has its own server.
+
+## Specifics
+
+- **Why each additional element is added:**
+  - *Second load balancer (HAProxy cluster):* removes the load balancer as a
+    SPOF. Both HAProxy nodes share a virtual IP and monitor each other
+    (heartbeat); if the active one fails, the other takes over.
+  - *Additional server:* gives room to split the stack so each component can
+    be given its own server.
+  - *Split components (web server, application server, database each on its
+    own server):* every component gets its own resources (CPU, RAM, disk), can
+    be scaled, tuned and maintained independently, and a problem in one
+    component does not take down the others.
+- **Application server vs web server:** the web server (Nginx) handles HTTP
+  and serves static content, while the application server runs the application
+  code and produces dynamic content.
