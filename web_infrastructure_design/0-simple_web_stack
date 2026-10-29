@@ -1,0 +1,52 @@
+# 0. Simple web stack
+
+Diagram: https://github.com/luisfe05/holbertonschool-system_engineering-devops/blob/main/web_infrastructure_design/0-simple_web_stack.png
+
+## What happens when a user visits www.foobar.com
+
+1. The user types `www.foobar.com` in the browser.
+2. The browser asks DNS for the IP of `www.foobar.com`. The `www` record of
+   `foobar.com` points to the server IP `8.8.8.8`.
+3. The browser opens a TCP connection to `8.8.8.8` (port 80 for HTTP, port 443
+   for HTTPS) and sends an HTTP request.
+4. Nginx receives the request. Static files are served directly; dynamic
+   requests are forwarded to the application server.
+5. The application server runs the code base, asks MySQL for the data it
+   needs, builds the page and sends it back through Nginx to the user.
+
+## Infrastructure
+
+- 1 server (IP 8.8.8.8) containing: 1 web server (Nginx), 1 application
+  server, 1 set of application files (the code base) and 1 database (MySQL).
+- 1 domain name, `foobar.com`, with a `www` record pointing to `8.8.8.8`.
+
+## Specifics
+
+- **What a server is:** a computer (physical or virtual) that is always on and
+  connected to a network, whose job is to run software that answers requests
+  from other computers (clients).
+- **Role of the domain name:** it is a human-readable name for an IP address.
+  DNS translates `www.foobar.com` into `8.8.8.8` so users do not have to
+  remember numbers.
+- **DNS record type of `www`:** an **A record** (it maps a name to an IPv4
+  address).
+- **Role of the web server:** it receives the HTTP requests from the users,
+  serves static content (HTML, CSS, images) and forwards dynamic requests to
+  the application server.
+- **Role of the application server:** it runs the application code (business
+  logic), generates the dynamic content and talks to the database.
+- **Role of the database:** it stores and retrieves the application data
+  (users, posts, products, ...) in a persistent and organized way.
+- **How the server communicates with the user's computer:** over the network
+  using the **TCP/IP** stack, with the **HTTP/HTTPS** application protocol
+  (requests and responses).
+
+## Issues with this infrastructure
+
+- **SPOF (Single Point Of Failure):** there is only one of everything. If the
+  server (or Nginx, the application server or MySQL) fails, the whole website
+  is down.
+- **Downtime during maintenance:** deploying new code often requires restarting
+  the web/application server, and during the restart the site is unavailable.
+- **Cannot scale:** one server has a limited capacity. If too much traffic
+  arrives, it becomes overloaded and slow or crashes.
