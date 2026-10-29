@@ -1,0 +1,61 @@
+# 1. Distributed web infrastructure
+
+Diagram: https://github.com/luisfe05/holbertonschool-system_engineering-devops/blob/main/web_infrastructure_design/1-distributed_web_infrastructure.png
+
+## What happens when a user visits www.foobar.com
+
+DNS resolves `www.foobar.com` to the IP of the load balancer. The HAProxy load
+balancer receives the request and forwards it to one of the two servers. On
+that server, Nginx handles the request, the application server runs the code
+and queries MySQL, and the response goes back through the load balancer to the
+user.
+
+## Infrastructure
+
+- 1 load balancer (HAProxy).
+- 2 servers, each with: 1 web server (Nginx), 1 application server, 1 set of
+  application files (code base) and 1 MySQL database.
+- MySQL is configured as a Primary-Replica cluster: Server 1 holds the Primary
+  and Server 2 holds the Replica.
+
+## Specifics
+
+- **Why each additional element is added:**
+  - *Load balancer (HAProxy):* spreads the traffic between the servers so no
+    single server is overloaded, and lets the site keep working if one server
+    goes down.
+  - *Second server:* adds redundancy and capacity. If one server fails or is
+    being updated, the other keeps serving users.
+  - *Database replica:* keeps a live copy of the data (backup/failover) and
+    can answer read queries to take load off the Primary.
+- **Distribution algorithm:** **Round Robin**. The load balancer sends the
+  first request to server 1, the second to server 2, the third to server 1
+  again, and so on, in rotation, so each server receives an equal share of
+  requests.
+- **Active-Active or Active-Passive:** this is an **Active-Active** setup,
+  because both servers receive traffic at the same time.
+  - *Active-Active:* all nodes are working and serving requests simultaneously.
+    Better resource use and capacity, and if one node fails the others absorb
+    its load.
+  - *Active-Passive:* only one node serves traffic; the other waits on standby
+    and takes over only when the active one fails. Simpler, but the standby
+    capacity is idle.
+- **How a Primary-Replica (Master-Slave) cluster works:** all writes
+  (INSERT, UPDATE, DELETE) go to the Primary node. The Primary records the
+  changes in its binary log and the Replica copies and applies them, so it
+  holds the same data. The Replica can serve reads.
+- **Primary vs Replica regarding the application:** the Primary accepts reads
+  and writes, so the application must send every write to it. The Replica is
+  read-only for the application: it can serve read queries (SELECT) but writes
+  must not be sent to it. If the Primary fails, a Replica can be promoted.
+
+## Issues with this infrastructure
+
+- **SPOF:**
+  - The load balancer: if it fails, nobody can reach the site.
+  - The Primary MySQL: if it fails, the application cannot write (until a
+    Replica is promoted).
+- **Security issues:** no firewall (any port is reachable), and no HTTPS (the
+  traffic is not encrypted, so it can be read or modified in transit).
+- **No monitoring:** nothing watches the servers, so failures or overload are
+  detected only when users complain.
